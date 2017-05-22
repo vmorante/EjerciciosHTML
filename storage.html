@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+</head>
+
+<body>
+    <script type="text/javascript">
+    if (localStorage.getItem("pageSize")) {
+        console.log('Ya existe');
+    } else {
+        localStorage.setItem("pageSize", 10);
+    }
+    localStorage.setItem("obj", JSON.stringify({
+        val1: true
+    }));
+    var size = localStorage.getItem("pageSize");
+
+    console.log(+size + 1);
+    var obj = localStorage.getItem("obj");
+    </script>
+</body>
+
+</html>
