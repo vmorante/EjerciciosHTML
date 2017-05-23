@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <style>
+    button {
+        width: 200px;
+    }
+    
+    #result {
+        margin-top: 1em;
+        border: 1px solid #ccc;
+        min-height: 200px;
+    }
+    </style>
+</head>
+
+<body>
+    <div class="form-control">
+        <button id="button1">get element </button>
+        <input id="id" type="number">
+    </div>
+    <div class="form-control">
+        <button id="button2">find</button>
+        <input id="name">
+    </div>
+    <div class="form-control">
+        <button id="button4">get element lowe case</button>
+        <input id="lowername">
+    </div>
+    <div class="form-control">
+        <button id="button5">get element lowe case</button>
+        <input id="uppername">
+    </div>
+    <div class="form-control">
+        <button id="button3">all name</button>
+    </div>
+    <div class="form-control" id="result"></div>
+    <div>
+        <button id="reset"> reset</button>
+    </div>
+    <script>
+    'use strict'
+    //var indexedDB = window.indexedDB || window.mozIndexedDB ||        window.webkitIndexedDB || window.msIndexedDB;
+    var request = indexedDB.open("database", 2);
+    var db;
+    request.onsuccess = function(e) {
+        console.log('Base de datos cargada correctamente ');
+        db = request.result;
+
+        fetch('https://jsonplaceholder.typicode.com/users').then(function(response) {
+            return response.json();
+        }).then(saveElements);
+    };
+
+    function saveElements(json) {
+        var people = json;
+        var transaction = db.transaction("people", "readwrite");
+        transaction.oncomplete = function(event) {
+            alert("All done!");
+        };
+        transaction.onerror = function(event) {
+            // handle errors!
+        };
+
+        var peopleObjectStore = transaction.objectStore("people");
+        for (var i in people) {
+            var addResponse = peopleObjectStore.add(people[i]);
+            addResponse.onsuccess = (function(i) {
+                return function() {
+                    console.log('added', i);
+                }
+            })(i);
+        }
+    }
+
+    request.onerror = function(e) {
+        console.log('error cargando')
+    }
+
+    function showResult(text) {
+        console.log(text);
+        document.getElementById('result').innerHTML = text;
+
+    }
+
+    function appendResult(text) {
+        console.log(text);
+        document.getElementById('result').innerHTML += text;
+
+    }
+    request.onupgradeneeded = function(e) {
+        console.log('upgrade')
+        var db = event.target.result;
+        var objectStore = db.createObjectStore("people", {
+            keyPath: 'id',
+            autoIncrement: true
+        });
+        objectStore.createIndex('by_name', 'name', {
+            unique: false
+        });
+        objectStore.createIndex('by_dni', 'dni', {
+            unique: true
+        });
+    };
+    document.getElementById('reset').addEventListener('click', function() {
+        document.getElementById('result').innerHTML = null;
+
+    })
+    document.getElementById('button1').addEventListener('click', function() {
+        var id = +document.getElementById('id').value || 1
+        var transaction = db.transaction('people');
+        var objectStore = transaction.objectStore("people");
+        var request = objectStore.get(+document.getElementById('id').value || 1);
+        request.onerror = function(event) {
+            // Handle errors!
+        };
+        request.onsuccess = function(event) {
+            // Do something with the request.result!
+            var text = "Name for id " + id + " is " + (request.result ? request.result.name : 'dunno');
+            console.log(text);
+            document.getElementById('result').innerHTML = text
+        };
+    });
+    document.getElementById('button2').addEventListener('click', function() {
+        var name = document.getElementById('name').value || 'Erwin Howell'
+        var transaction = db.transaction('people');
+        var objectStore = transaction.objectStore('people')
+        var index = objectStore.index("by_name");
+        index.get(name).onsuccess = function(event) {
+            var text = "Donna's email is " + event.target.result.email + ' and id ' + event.target.result.id;
+            showResult(text);
+        }
+
+        // Using a normal cursor to grab whole people record objects
+
+
+    })
+    document.getElementById('button3').addEventListener('click', function() {
+        var transaction = db.transaction('people');
+        var objectStore = transaction.objectStore('people')
+        var index = objectStore.index("by_name");
+
+        index.openCursor().onsuccess = function(event) {
+            var cursor = event.target.result;
+            if (cursor) {
+                var text = "<br>Name: " + cursor.key +
+                    ", id: " + cursor.value.id + ", email: " + cursor.value.email;
+                appendResult(text);
+                cursor.continue();
+            }
+        };
+
+    })
+
+    document.getElementById('button4').addEventListener('click', function() {
+        //reset();
+        var name = document.getElementById('lowername').value || 'Erwin Howell'
+        var transaction = db.transaction('people');
+        var objectStore = transaction.objectStore('people')
+        var index = objectStore.index("by_name");
+
+        var lowerBounderKeyRange = IDBKeyRange.lowerBound(name);
+        index.openCursor(lowerBounderKeyRange).onsuccess = function(event) {
+            var cursor = event.target.result;
+            if (cursor) {
+                var text = "<br>Name: " + cursor.key +
+                    ", id: " + cursor.value.id + ", email: " + cursor.value.email;
+                appendResult(text);
+                cursor.continue();
+            }
+        };
+
+    })
+
+    document.getElementById('button5').addEventListener('click', function() {
+        //reset();
+        var name = document.getElementById('uppername').value || 'Erwin Howell'
+        var transaction = db.transaction('people');
+        var objectStore = transaction.objectStore('people')
+        var index = objectStore.index("by_name");
+
+        var upperBounderKeyRange = IDBKeyRange.upperBound(name);
+        index.openCursor(upperBounderKeyRange).onsuccess = function(event) {
+            var cursor = event.target.result;
+            if (cursor) {
+                var text = "<br>Name: " + cursor.key +
+                    ", id: " + cursor.value.id + ", email: " + cursor.value.email;
+                appendResult(text);
+                cursor.continue();
+            }
+        };
+
+    })
+    </script>
+</body>
+
+</html>
